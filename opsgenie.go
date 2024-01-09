@@ -40,6 +40,6 @@ func getNewAlerts(c Config) ([]alertsv2.Alert, error) {
 // https://support.atlassian.com/opsgenie/docs/search-queries-for-alerts/
 func makeQuery(c Config) string {
 	start := time.Now().Add(-c.MinAge).UnixMilli()
-	q := fmt.Sprintf("createdAt < %d %s", start, c.Filter)
+	q := fmt.Sprintf("status: open createdAt < %d %s", start, c.Filter)
 	return q
 }

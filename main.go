@@ -30,13 +30,13 @@ func run() error {
 		}
 	}()
 
-	fmt.Println("fetching alerts...")
+	log.Println("fetching alerts...")
 	alerts, err := getNewAlerts(c)
 	if err != nil {
 		return fmt.Errorf("fetch alerts: %v", err)
 	}
 
-	fmt.Println("sending slack messages...")
+	log.Println("sending slack messages...")
 	for _, alert := range alerts {
 		lastNotif, notified := state.Get(alert)
 
@@ -44,12 +44,15 @@ func run() error {
 		// or if the last notification was sent a long time ago
 		notify := !notified || time.Since(lastNotif) >= c.RemindEvery
 		if notify {
-			fmt.Println(alert.ID, alert.Message)
+			log.Printf("\033[32m%s\033[0m %s", alert.ID, alert.Message)
 			err := sendMessage(c, alert)
 			if err != nil {
 				return fmt.Errorf("send slack message: %v", err)
 			}
 			state.Update(alert)
+			if c.One {
+				break
+			}
 		}
 	}
 

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/opsgenie/opsgenie-go-sdk/alertsv2"
@@ -26,29 +27,28 @@ func sendMessage(c Config, alert alertsv2.Alert) error {
 // https://www.bacancytechnology.com/blog/develop-slack-bot-using-golang
 func makeAttachment(c Config, alert alertsv2.Alert) slack.Attachment {
 	fields := make([]slack.AttachmentField, 0)
-
-	// age
-	age := int(time.Since(alert.CreatedAt).Hours())
-	var ageStr string
-	if age > 48 {
-		ageStr = fmt.Sprintf(" %d days", age/24)
-	} else {
-		ageStr = fmt.Sprintf(" %d hours", age)
-	}
-	field := slack.AttachmentField{Title: "Age", Value: ageStr, Short: true}
-	fields = append(fields, field)
-
-	if alert.Priority != "" {
-		field = slack.AttachmentField{Title: "Priority", Value: string(alert.Priority), Short: true}
+	addField := func(title, value string) {
+		field := slack.AttachmentField{Title: title, Value: value, Short: true}
 		fields = append(fields, field)
+	}
+
+	age := int(time.Since(alert.CreatedAt).Hours())
+	addField("Age", humanizeHours(age))
+	if alert.Priority != "" {
+		addField("Priority", string(alert.Priority))
 	}
 	if alert.Owner != "" {
-		field = slack.AttachmentField{Title: "Owner", Value: alert.Owner}
-		fields = append(fields, field)
+		addField("Owner", alert.Owner)
 	}
 	if alert.Report.AcknowledgedBy != "" {
-		field = slack.AttachmentField{Title: "Acknowledged by", Value: alert.Report.AcknowledgedBy}
-		fields = append(fields, field)
+		addField("Acknowledged by", alert.Report.AcknowledgedBy)
+	}
+	if alert.Integration.Name != "" {
+		addField("Integration", alert.Integration.Name)
+	}
+	issues := getIssues(alert)
+	if len(issues) > 0 {
+		addField("Issues", strings.Join(issues, ", "))
 	}
 
 	url := fmt.Sprintf("%s/alert/detail/%s/details", c.OpsgenieURL, alert.ID)
@@ -59,4 +59,28 @@ func makeAttachment(c Config, alert alertsv2.Alert) slack.Attachment {
 		Fields:    fields,
 	}
 	return attachment
+}
+
+func getIssues(alert alertsv2.Alert) []string {
+	issues := make([]string, 0)
+	if !alert.IsSeen {
+		issues = append(issues, "not-seen")
+	}
+	if !alert.Acknowledged {
+		issues = append(issues, "not-acked")
+	}
+	if alert.Snoozed {
+		issues = append(issues, "snoozed")
+	}
+	if alert.Owner == "" {
+		issues = append(issues, "no-owner")
+	}
+	return issues
+}
+
+func humanizeHours(age int) string {
+	if age > 48 {
+		return fmt.Sprintf(" %d days", age/24)
+	}
+	return fmt.Sprintf(" %d hours", age)
 }

@@ -18,6 +18,7 @@ type Config struct {
 	SlackToken     string
 	SlackChannel   string
 	Dry            bool
+	One            bool
 }
 
 func (c *Config) Flags() *pflag.FlagSet {
@@ -60,7 +61,11 @@ func (c *Config) Flags() *pflag.FlagSet {
 	)
 	fs.BoolVar(
 		&c.Dry, "dry", false,
-		"do not send slack messages",
+		"do not send slack messages, useful for debugging",
+	)
+	fs.BoolVar(
+		&c.One, "one", false,
+		"send one slack message and exit, useful for debugging",
 	)
 	return fs
 }
