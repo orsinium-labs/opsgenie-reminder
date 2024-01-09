@@ -2,11 +2,18 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"time"
+
+	"github.com/opsgenie/opsgenie-go-sdk/alertsv2"
 )
 
+// State stores for each alert the last time when notification for it has been sent.
+//
+// Closed alerts and alert that didn't have a notification sent are excluded
+// from the state to save space.
 type State struct {
 	path  string
 	state map[string]time.Time
@@ -17,6 +24,10 @@ func NewState(path string) State {
 }
 
 func (s *State) Load() error {
+	// if state does not exists, do nothing
+	if _, err := os.Stat(s.path); errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
 	raw, err := os.ReadFile(s.path)
 	if err != nil {
 		return fmt.Errorf("read file: %v", err)
@@ -28,7 +39,37 @@ func (s *State) Load() error {
 	return nil
 }
 
-func (s *State) Dump() error {
+// Get the last time when the notification was sent for the alert.
+func (s *State) Get(a alertsv2.Alert) (time.Time, bool) {
+	t, ok := s.state[a.ID]
+	return t, ok
+}
+
+// Update stores the last notification sending time for the given alert.
+func (s *State) Update(a alertsv2.Alert) {
+	s.state[a.ID] = time.Now()
+}
+
+// Sync removes old alerts from the state.
+//
+// It stores all current alerts that are present in the current state
+// and nothing else. In other words, it is intersection of the old and new state.
+func (s *State) Sync(current []alertsv2.Alert) {
+	newState := make(map[string]time.Time)
+	for _, a := range current {
+		updated, found := s.state[a.ID]
+		if found {
+			newState[a.ID] = updated
+		}
+	}
+	s.state = newState
+}
+
+func (s State) Dump() error {
+	// don't save the empty state
+	if len(s.state) == 0 {
+		return nil
+	}
 	raw, err := json.Marshal(s.state)
 	if err != nil {
 		return fmt.Errorf("serialize into JSON: %v", err)

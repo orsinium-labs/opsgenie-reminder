@@ -8,7 +8,7 @@ import (
 	ogcli "github.com/opsgenie/opsgenie-go-sdk/client"
 )
 
-func getNewAlerts(c *Config) ([]alertsv2.Alert, error) {
+func getNewAlerts(c Config) ([]alertsv2.Alert, error) {
 	client := ogcli.OpsGenieClient{}
 	client.SetAPIKey(c.OpsgenieToken)
 	client.SetOpsGenieAPIUrl(c.OpsgenieAPIURL)
@@ -35,7 +35,7 @@ func getNewAlerts(c *Config) ([]alertsv2.Alert, error) {
 	return alerts, nil
 }
 
-func makeQuery(c *Config) string {
+func makeQuery(c Config) string {
 	start := time.Now().Add(-c.MinAge).UnixMilli()
 	q := fmt.Sprintf("createdAt < %d %s", start, c.Filter)
 	return q

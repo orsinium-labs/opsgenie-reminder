@@ -9,6 +9,9 @@ import (
 )
 
 func sendMessage(c Config, alert alertsv2.Alert) error {
+	if c.Dry {
+		return nil
+	}
 	api := slack.New(c.SlackToken)
 	_, _, err := api.PostMessage(
 		c.SlackChannel,

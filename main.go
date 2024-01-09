@@ -1,60 +1,64 @@
 package main
 
 import (
+	"fmt"
+	"log"
+	"os"
 	"time"
-
-	"github.com/spf13/pflag"
 )
 
-type Config struct {
-	MinAge         time.Duration
-	RemindEvery    time.Duration
-	Filter         string
-	OpsgenieToken  string
-	OpsgenieAPIURL string
-	OpsgenieURL    string
-	StatePath      string
-	SlackToken     string
-	SlackChannel   string
+func run() error {
+	// read CLI args
+	c := Config{}
+	fs := c.Flags()
+	_ = fs.Parse(os.Args[1:])
+	err := c.Validate()
+	if err != nil {
+		return err
+	}
+
+	// load state
+	state := NewState(c.StatePath)
+	err = state.Load()
+	if err != nil {
+		return fmt.Errorf("load state: %v", err)
+	}
+	defer func() {
+		err := state.Dump()
+		if err != nil {
+			log.Println(err)
+		}
+	}()
+
+	fmt.Println("fetching alerts...")
+	alerts, err := getNewAlerts(c)
+	if err != nil {
+		return fmt.Errorf("fetch alerts: %v", err)
+	}
+
+	fmt.Println("sending slack messages...")
+	for _, alert := range alerts {
+		lastNotif, notified := state.Get(alert)
+
+		// send notification if never notified about the alert before
+		// or if the last notification was sent a long time ago
+		notify := !notified || time.Since(lastNotif) >= c.RemindEvery
+		if notify {
+			fmt.Println(alert.ID, alert.Message)
+			err := sendMessage(c, alert)
+			if err != nil {
+				return fmt.Errorf("send slack message: %v", err)
+			}
+			state.Update(alert)
+		}
+	}
+
+	return nil
 }
 
-func (c *Config) Flags() *pflag.FlagSet {
-	fs := pflag.NewFlagSet("opsgenie-reminder", pflag.ExitOnError)
-	fs.DurationVar(
-		&c.MinAge, "min-age", time.Hour*24*7,
-		"notify only about alerts at least that old",
-	)
-	fs.DurationVar(
-		&c.RemindEvery, "remind-every", time.Hour*24*7,
-		"re-send notification if an alert is open that long after the previous notification",
-	)
-	fs.StringVar(
-		&c.Filter, "filter", "",
-		"opsgenie query to filter alerts",
-	)
-	fs.StringVar(
-		&c.OpsgenieToken, "opsgenie-token", "",
-		"opsgenie API token to use for sending requests",
-	)
-	fs.StringVar(
-		&c.OpsgenieAPIURL, "opsgenie-api-url", "https://api.eu.opsgenie.com",
-		"opsgenie API URL to use for sending requests",
-	)
-	fs.StringVar(
-		&c.OpsgenieURL, "opsgenie-url", "https://eu.opsgenie.com",
-		"the base opsgenie URL to use for generating web links to alerts",
-	)
-	fs.StringVar(
-		&c.StatePath, "state-path", ".opsgenie-reminder-state.json",
-		"the path to the JSON file to use for storing the state between runs",
-	)
-	fs.StringVar(
-		&c.SlackToken, "slack-token", "",
-		"slack API token to use for sending messages",
-	)
-	fs.StringVar(
-		&c.SlackToken, "slack-channel", "",
-		"slack channel name to use for sending messages",
-	)
-	return fs
+func main() {
+	err := run()
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -10,4 +10,5 @@ require (
 	github.com/opsgenie/opsgenie-go-sdk v0.0.0-20210305051615-8fb766c7514b // indirect
 	github.com/slack-go/slack v0.12.3 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	golang.org/x/sync v0.6.0 // indirect
 )
