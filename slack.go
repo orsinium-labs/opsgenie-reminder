@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -9,7 +10,32 @@ import (
 	"github.com/slack-go/slack"
 )
 
-func sendMessage(c Config, alert alertsv2.Alert) error {
+type Teams map[string]string
+
+func ReadTeams(path string) (Teams, error) {
+	if path == "" {
+		return nil, nil
+	}
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read file: %v", err)
+	}
+	teams := make(Teams)
+	rawString := string(raw)
+	for _, line := range strings.Split(rawString, "\n") {
+		if len(line) == 0 {
+			continue
+		}
+		parts := strings.Split(line, " ")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("expected 2 words, %d found", len(parts))
+		}
+		teams[parts[0]] = parts[1]
+	}
+	return teams, nil
+}
+
+func sendMessage(c Config, alert alertsv2.Alert, teams Teams) error {
 	if c.Dry {
 		return nil
 	}
@@ -18,14 +44,14 @@ func sendMessage(c Config, alert alertsv2.Alert) error {
 	// https://api.slack.com/methods/chat.postMessage
 	_, _, err := api.PostMessage(
 		c.SlackChannel,
-		slack.MsgOptionAttachments(makeAttachment(c, alert)),
+		slack.MsgOptionAttachments(makeAttachment(c, alert, teams)),
 	)
 	return err
 }
 
 // https://api.slack.com/reference/surfaces/formatting
 // https://www.bacancytechnology.com/blog/develop-slack-bot-using-golang
-func makeAttachment(c Config, alert alertsv2.Alert) slack.Attachment {
+func makeAttachment(c Config, alert alertsv2.Alert, teams Teams) slack.Attachment {
 	fields := make([]slack.AttachmentField, 0)
 	addField := func(title, value string) {
 		field := slack.AttachmentField{Title: title, Value: value, Short: true}
@@ -49,6 +75,13 @@ func makeAttachment(c Config, alert alertsv2.Alert) slack.Attachment {
 	issues := getIssues(alert)
 	if len(issues) > 0 {
 		addField("Issues", strings.Join(issues, ", "))
+	}
+	if len(alert.Teams) > 0 && teams != nil {
+		team := teams[alert.Teams[0].ID]
+		if team != "" {
+			team = strings.TrimPrefix(team, "@")
+			addField("Team", "@"+team)
+		}
 	}
 
 	url := fmt.Sprintf("%s/alert/detail/%s/details", c.OpsgenieURL, alert.ID)

@@ -15,6 +15,7 @@ type Config struct {
 	OpsgenieAPIURL string
 	OpsgenieURL    string
 	StatePath      string
+	TeamsPath      string
 	SlackToken     string
 	SlackChannel   string
 	Dry            bool
@@ -49,7 +50,11 @@ func (c *Config) Flags() *pflag.FlagSet {
 	)
 	fs.StringVar(
 		&c.StatePath, "state-path", ".opsgenie-reminder-state.json",
-		"the path to the JSON file to use for storing the state between runs",
+		"path to the JSON file to use for storing the state between runs",
+	)
+	fs.StringVar(
+		&c.TeamsPath, "teams-path", "",
+		"path to the text file mapping opsgenie team IDs to slack groups",
 	)
 	fs.StringVar(
 		&c.SlackToken, "slack-token", "",

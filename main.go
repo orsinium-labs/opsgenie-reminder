@@ -29,6 +29,10 @@ func run() error {
 			log.Println(err)
 		}
 	}()
+	teams, err := ReadTeams(c.TeamsPath)
+	if err != nil {
+		return fmt.Errorf("read teams: %v", err)
+	}
 
 	log.Println("fetching alerts...")
 	alerts, err := getNewAlerts(c)
@@ -45,7 +49,7 @@ func run() error {
 		notify := !notified || time.Since(lastNotif) >= c.RemindEvery
 		if notify {
 			log.Printf("\033[32m%s\033[0m %s", alert.ID, alert.Message)
-			err := sendMessage(c, alert)
+			err := sendMessage(c, alert, teams)
 			if err != nil {
 				return fmt.Errorf("send slack message: %v", err)
 			}
