@@ -13,6 +13,8 @@ func sendMessage(c Config, alert alertsv2.Alert) error {
 		return nil
 	}
 	api := slack.New(c.SlackToken)
+	// https://github.com/slack-go/slack/blob/master/examples/messages/messages.go
+	// https://api.slack.com/methods/chat.postMessage
 	_, _, err := api.PostMessage(
 		c.SlackChannel,
 		slack.MsgOptionText(makeMessage(c, alert), false),
@@ -20,6 +22,7 @@ func sendMessage(c Config, alert alertsv2.Alert) error {
 	return err
 }
 
+// https://api.slack.com/reference/surfaces/formatting
 func makeMessage(c Config, alert alertsv2.Alert) string {
 	// age
 	msg := "Alert is open for"
