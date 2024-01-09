@@ -32,6 +32,7 @@ func getNewAlerts(c Config) ([]alertsv2.Alert, error) {
 		if len(response.Alerts) < 100 {
 			break
 		}
+		offset += len(response.Alerts)
 	}
 	return alerts, nil
 }

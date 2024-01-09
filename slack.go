@@ -17,28 +17,46 @@ func sendMessage(c Config, alert alertsv2.Alert) error {
 	// https://api.slack.com/methods/chat.postMessage
 	_, _, err := api.PostMessage(
 		c.SlackChannel,
-		slack.MsgOptionText(makeMessage(c, alert), false),
+		slack.MsgOptionAttachments(makeAttachment(c, alert)),
 	)
 	return err
 }
 
 // https://api.slack.com/reference/surfaces/formatting
-func makeMessage(c Config, alert alertsv2.Alert) string {
+// https://www.bacancytechnology.com/blog/develop-slack-bot-using-golang
+func makeAttachment(c Config, alert alertsv2.Alert) slack.Attachment {
+	fields := make([]slack.AttachmentField, 0)
+
 	// age
-	msg := "Alert is open for"
 	age := int(time.Since(alert.CreatedAt).Hours())
+	var ageStr string
 	if age > 48 {
-		msg += fmt.Sprintf(" %d days", age/24)
+		ageStr = fmt.Sprintf(" %d days", age/24)
 	} else {
-		msg += fmt.Sprintf(" %d hours", age)
+		ageStr = fmt.Sprintf(" %d hours", age)
+	}
+	field := slack.AttachmentField{Title: "Age", Value: ageStr, Short: true}
+	fields = append(fields, field)
+
+	if alert.Priority != "" {
+		field = slack.AttachmentField{Title: "Priority", Value: string(alert.Priority), Short: true}
+		fields = append(fields, field)
+	}
+	if alert.Owner != "" {
+		field = slack.AttachmentField{Title: "Owner", Value: alert.Owner}
+		fields = append(fields, field)
+	}
+	if alert.Report.AcknowledgedBy != "" {
+		field = slack.AttachmentField{Title: "Acknowledged by", Value: alert.Report.AcknowledgedBy}
+		fields = append(fields, field)
 	}
 
-	// priority, title, and link
-	msg += "\n"
-	if alert.Priority != "" {
-		msg += "[" + string(alert.Priority) + "]"
-	}
 	url := fmt.Sprintf("%s/alert/detail/%s/details", c.OpsgenieURL, alert.ID)
-	msg += fmt.Sprintf("[%s](%s)", alert.Message, url)
-	return msg
+	attachment := slack.Attachment{
+		Title:     alert.Message,
+		TitleLink: url,
+		Pretext:   "Alert is open for too long",
+		Fields:    fields,
+	}
+	return attachment
 }

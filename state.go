@@ -26,6 +26,7 @@ func NewState(path string) State {
 func (s *State) Load() error {
 	// if state does not exists, do nothing
 	if _, err := os.Stat(s.path); errors.Is(err, os.ErrNotExist) {
+		s.state = make(map[string]time.Time)
 		return nil
 	}
 	raw, err := os.ReadFile(s.path)
