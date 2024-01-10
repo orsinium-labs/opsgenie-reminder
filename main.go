@@ -41,6 +41,7 @@ func run() error {
 	}
 
 	log.Println("sending slack messages...")
+	sent := 0
 	for _, alert := range alerts {
 		lastNotif, notified := state.Get(alert)
 
@@ -54,7 +55,8 @@ func run() error {
 				return fmt.Errorf("send slack message: %v", err)
 			}
 			state.Update(alert)
-			if c.One {
+			sent += 1
+			if c.One || sent >= c.MaxMessages {
 				break
 			}
 		}

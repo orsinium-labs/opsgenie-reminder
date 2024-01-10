@@ -18,6 +18,7 @@ type Config struct {
 	TeamsPath      string
 	SlackToken     string
 	SlackChannel   string
+	MaxMessages    int
 	Dry            bool
 	One            bool
 }
@@ -63,6 +64,10 @@ func (c *Config) Flags() *pflag.FlagSet {
 	fs.StringVar(
 		&c.SlackChannel, "slack-channel", "",
 		"slack channel name to use for sending messages",
+	)
+	fs.IntVar(
+		&c.MaxMessages, "max-messages", 10,
+		"how many messages (at most) can be sent in a single run",
 	)
 	fs.BoolVar(
 		&c.Dry, "dry", false,

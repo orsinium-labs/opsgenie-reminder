@@ -1,4 +1,5 @@
-.opsgenie-reminder-state.json
-.env
-teams.txt
+/.opsgenie-reminder-state.json
+/.env
+/teams.txt
 /dist
+/run.sh
