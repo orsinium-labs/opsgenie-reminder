@@ -4,8 +4,38 @@ A CLI tool that fetches from Opsgenie alerts that are open for too long and send
 
 ## Installation
 
+Pick one of the options below.
+
+### Download binary
+
+1. Download a binary release from [Github Releases](https://github.com/orsinium-labs/opsgenie-reminder/releases) page.
+1. Place it somewhere in your `$PATH`: `mv opsgenie-reminder ~/.local/bin/`.
+
+### Install using Go
+
+Install the latest version using Go:
+
 ```bash
-go get github.com/orsinium-labs/opsgenie-reminder
+go install github.com/orsinium-labs/opsgenie-reminder@latest
+opsgenie-reminder --help
+```
+
+### Build from source
+
+```bash
+git clone --depth 1 git@github.com:orsinium-labs/opsgenie-reminder.git
+cd opsgenie-reminder
+go build .
+./opsgenie-reminder --help
+```
+
+### Build Docker image
+
+```bash
+git clone --depth 1 git@github.com:orsinium-labs/opsgenie-reminder.git
+cd opsgenie-reminder
+sudo docker build --tag opsgenie-reminder .
+sudo docker run opsgenie-reminder
 ```
 
 ## Usage
