@@ -42,9 +42,12 @@ func sendMessage(c Config, alert alertsv2.Alert, teams Teams) error {
 	api := slack.New(c.SlackToken)
 	// https://github.com/slack-go/slack/blob/master/examples/messages/messages.go
 	// https://api.slack.com/methods/chat.postMessage
+	params := slack.NewPostMessageParameters()
+	params.LinkNames = 1
 	_, _, err := api.PostMessage(
 		c.SlackChannel,
 		slack.MsgOptionAttachments(makeAttachment(c, alert, teams)),
+		slack.MsgOptionPostMessageParameters(params),
 	)
 	return err
 }
@@ -61,7 +64,8 @@ func makeAttachment(c Config, alert alertsv2.Alert, teams Teams) slack.Attachmen
 	age := int(time.Since(alert.CreatedAt).Hours())
 	addField("Age", humanizeHours(age))
 	if alert.Priority != "" {
-		addField("Priority", string(alert.Priority))
+		icon := getIcon(alert.Priority)
+		addField("Priority", icon+" "+string(alert.Priority))
 	}
 	if alert.Owner != "" {
 		addField("Owner", alert.Owner)
@@ -74,7 +78,7 @@ func makeAttachment(c Config, alert alertsv2.Alert, teams Teams) slack.Attachmen
 	}
 	issues := getIssues(alert)
 	if len(issues) > 0 {
-		addField("Issues", strings.Join(issues, ", "))
+		addField("Issues", strings.Join(issues, " "))
 	}
 	if len(alert.Teams) > 0 && teams != nil {
 		team := teams[alert.Teams[0].ID]
@@ -97,16 +101,19 @@ func makeAttachment(c Config, alert alertsv2.Alert, teams Teams) slack.Attachmen
 func getIssues(alert alertsv2.Alert) []string {
 	issues := make([]string, 0)
 	if !alert.IsSeen {
-		issues = append(issues, "not-seen")
+		issues = append(issues, "👀 not-seen")
 	}
 	if !alert.Acknowledged {
-		issues = append(issues, "not-acked")
+		issues = append(issues, "🙅 not-acked")
 	}
 	if alert.Snoozed {
-		issues = append(issues, "snoozed")
+		issues = append(issues, "😴 snoozed")
 	}
 	if alert.Owner == "" {
-		issues = append(issues, "no-owner")
+		issues = append(issues, "👤 no-owner")
+	}
+	if len(alert.Teams) == 0 {
+		issues = append(issues, "👥 no-team")
 	}
 	return issues
 }
@@ -116,4 +123,19 @@ func humanizeHours(age int) string {
 		return fmt.Sprintf(" %d days", age/24)
 	}
 	return fmt.Sprintf(" %d hours", age)
+}
+
+func getIcon(p alertsv2.Priority) string {
+	switch p {
+	case alertsv2.P1:
+		return "🔥"
+	case alertsv2.P2:
+		return "🔴"
+	case alertsv2.P3:
+		return "🟠"
+	case alertsv2.P4:
+		return "🟡"
+	default:
+		return "🔵"
+	}
 }
