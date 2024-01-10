@@ -1,3 +1,4 @@
 .opsgenie-reminder-state.json
 .env
 teams.txt
+/dist
