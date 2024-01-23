@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/opsgenie/opsgenie-go-sdk/alertsv2"
+	"github.com/opsgenie/opsgenie-go-sdk-v2/alert"
 )
 
 // State stores for each alert the last time when notification for it has been sent.
@@ -41,26 +41,26 @@ func (s *State) Load() error {
 }
 
 // Get the last time when the notification was sent for the alert.
-func (s *State) Get(a alertsv2.Alert) (time.Time, bool) {
-	t, ok := s.state[a.ID]
+func (s *State) Get(a alert.Alert) (time.Time, bool) {
+	t, ok := s.state[a.Id]
 	return t, ok
 }
 
 // Update stores the last notification sending time for the given alert.
-func (s *State) Update(a alertsv2.Alert) {
-	s.state[a.ID] = time.Now()
+func (s *State) Update(a alert.Alert) {
+	s.state[a.Id] = time.Now()
 }
 
 // Sync removes old alerts from the state.
 //
 // It stores all current alerts that are present in the current state
 // and nothing else. In other words, it is intersection of the old and new state.
-func (s *State) Sync(current []alertsv2.Alert) {
+func (s *State) Sync(current []alert.Alert) {
 	newState := make(map[string]time.Time)
 	for _, a := range current {
-		updated, found := s.state[a.ID]
+		updated, found := s.state[a.Id]
 		if found {
-			newState[a.ID] = updated
+			newState[a.Id] = updated
 		}
 	}
 	s.state = newState

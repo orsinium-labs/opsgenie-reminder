@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/opsgenie/opsgenie-go-sdk/alertsv2"
+	"github.com/opsgenie/opsgenie-go-sdk-v2/alert"
 	"github.com/slack-go/slack"
 )
 
@@ -35,7 +35,7 @@ func ReadTeams(path string) (Teams, error) {
 	return teams, nil
 }
 
-func sendMessage(c Config, alert alertsv2.Alert, teams Teams) error {
+func sendMessage(c Config, alert alert.Alert, teams Teams) error {
 	if c.Dry {
 		return nil
 	}
@@ -54,7 +54,7 @@ func sendMessage(c Config, alert alertsv2.Alert, teams Teams) error {
 
 // https://api.slack.com/reference/surfaces/formatting
 // https://www.bacancytechnology.com/blog/develop-slack-bot-using-golang
-func makeAttachment(c Config, alert alertsv2.Alert, teams Teams) slack.Attachment {
+func makeAttachment(c Config, alert alert.Alert, teams Teams) slack.Attachment {
 	fields := make([]slack.AttachmentField, 0)
 	addField := func(title, value string) {
 		field := slack.AttachmentField{Title: title, Value: value, Short: true}
@@ -80,15 +80,15 @@ func makeAttachment(c Config, alert alertsv2.Alert, teams Teams) slack.Attachmen
 	if len(issues) > 0 {
 		addField("Issues", strings.Join(issues, " "))
 	}
-	if len(alert.Teams) > 0 && teams != nil {
-		team := teams[alert.Teams[0].ID]
+	if len(alert.Responders) > 0 && teams != nil {
+		team := teams[alert.Responders[0].Id]
 		if team != "" {
 			team = strings.TrimPrefix(team, "@")
 			addField("Team", "@"+team)
 		}
 	}
 
-	url := fmt.Sprintf("%s/alert/detail/%s/details", c.OpsgenieURL, alert.ID)
+	url := fmt.Sprintf("%s/alert/detail/%s/details", c.OpsgenieURL, alert.Id)
 	attachment := slack.Attachment{
 		Title:     alert.Message,
 		TitleLink: url,
@@ -98,7 +98,7 @@ func makeAttachment(c Config, alert alertsv2.Alert, teams Teams) slack.Attachmen
 	return attachment
 }
 
-func getIssues(alert alertsv2.Alert) []string {
+func getIssues(alert alert.Alert) []string {
 	issues := make([]string, 0)
 	if !alert.IsSeen {
 		issues = append(issues, "👀 not-seen")
@@ -112,8 +112,8 @@ func getIssues(alert alertsv2.Alert) []string {
 	if alert.Owner == "" {
 		issues = append(issues, "👤 no-owner")
 	}
-	if len(alert.Teams) == 0 {
-		issues = append(issues, "👥 no-team")
+	if len(alert.Responders) == 0 {
+		issues = append(issues, "👥 no-responders")
 	}
 	return issues
 }
@@ -125,15 +125,15 @@ func humanizeHours(age int) string {
 	return fmt.Sprintf(" %d hours", age)
 }
 
-func getIcon(p alertsv2.Priority) string {
+func getIcon(p alert.Priority) string {
 	switch p {
-	case alertsv2.P1:
+	case alert.P1:
 		return "🔥"
-	case alertsv2.P2:
+	case alert.P2:
 		return "🔴"
-	case alertsv2.P3:
+	case alert.P3:
 		return "🟠"
-	case alertsv2.P4:
+	case alert.P4:
 		return "🟡"
 	default:
 		return "🔵"

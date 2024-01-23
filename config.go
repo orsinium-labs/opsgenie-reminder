@@ -42,7 +42,7 @@ func (c *Config) Flags() *pflag.FlagSet {
 		"opsgenie API token to use for sending requests",
 	)
 	fs.StringVar(
-		&c.OpsgenieAPIURL, "opsgenie-api-url", "https://api.eu.opsgenie.com",
+		&c.OpsgenieAPIURL, "opsgenie-api-url", "api.eu.opsgenie.com",
 		"opsgenie API URL to use for sending requests",
 	)
 	fs.StringVar(

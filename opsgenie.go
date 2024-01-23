@@ -1,30 +1,33 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/opsgenie/opsgenie-go-sdk/alertsv2"
-	ogcli "github.com/opsgenie/opsgenie-go-sdk/client"
+	"github.com/opsgenie/opsgenie-go-sdk-v2/alert"
+	ogcli "github.com/opsgenie/opsgenie-go-sdk-v2/client"
 )
 
-func getNewAlerts(c Config) ([]alertsv2.Alert, error) {
-	client := ogcli.OpsGenieClient{}
-	client.SetAPIKey(c.OpsgenieToken)
-	client.SetOpsGenieAPIUrl(c.OpsgenieAPIURL)
-	alertClient, _ := client.AlertV2()
+func getNewAlerts(c Config) ([]alert.Alert, error) {
+	config := &ogcli.Config{
+		ApiKey:         c.OpsgenieToken,
+		OpsGenieAPIURL: ogcli.ApiUrl(c.OpsgenieAPIURL),
+	}
+	alertClient, _ := alert.NewClient(config)
 	query := makeQuery(c)
-	alerts := make([]alertsv2.Alert, 0)
+	alerts := make([]alert.Alert, 0)
 	for offset := 0; offset < 9800; offset += 100 {
 		// https://docs.opsgenie.com/docs/alert-api#list-alerts
-		request := alertsv2.ListAlertRequest{
+		request := alert.ListAlertRequest{
 			Query:  query,
 			Offset: offset,
 			Limit:  100,
 			Sort:   "createdAt",
 			Order:  "desc",
 		}
-		response, err := alertClient.List(request)
+		ctx := context.Background()
+		response, err := alertClient.List(ctx, &request)
 		if err != nil {
 			return nil, err
 		}

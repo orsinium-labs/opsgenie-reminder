@@ -49,7 +49,7 @@ func run() error {
 		// or if the last notification was sent a long time ago
 		notify := !notified || time.Since(lastNotif) >= c.RemindEvery
 		if notify {
-			log.Printf("\033[32m%s\033[0m %s", alert.ID, alert.Message)
+			log.Printf("\033[32m%s\033[0m %s", alert.Id, alert.Message)
 			err := sendMessage(c, alert, teams)
 			if err != nil {
 				return fmt.Errorf("send slack message: %v", err)
